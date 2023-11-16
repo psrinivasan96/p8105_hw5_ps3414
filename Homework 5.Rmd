@@ -1,14 +1,19 @@
 ---
 title: "Homework 5"
 author: "Pavithra Srinivasan"
+date: November 16, 2023
 output: github_document
 ---
 
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(p8105.datasets)
-library(viridis)
+library(haven)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(broom)
+library(purrr)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -103,6 +108,69 @@ This figure suggests a very wide range in the rate at which homicides are solved
 
 
 ## Problem 2
+
+Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time: 
+
+Iterate file names and read in data for each subject and clean it:
+```{r}
+
+file_names = list.files(path = "./data1", full.names = TRUE)
+
+#Import and combining files
+
+tidy_df = file_names |> 
+  map_dfr(read_csv, .id = "participant_id") |> 
+  mutate(study_arm = print(dir(path = "./data1", include.dirs = FALSE))) |> 
+  mutate(study_arm = str_remove(study_arm, ".csv")) |> 
+  separate(study_arm, into = c("study_arm", "subject_id")) |> 
+  select(participant_id, study_arm, subject_id, everything())
+
+tidy_df |> 
+  knitr::kable(digits = 2)
+
+#Cleaning
+
+tidy_df = tidy_df |> 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    values_to = "observations",
+    names_prefix = "week_"
+  ) |> 
+  mutate(week = as.numeric(week))
+
+tidy_df |> 
+  head()
+
+```
+
+### Lets Visualize by creating a spaghetti plot
+
+```{r}
+
+spaghetti_plot = tidy_df |>
+  group_by(subject_id) |> 
+  ggplot(aes(x = week, y = observations)) + 
+           geom_point(alpha = 0.7, aes(color = subject_id)) +  geom_line(alpha = 0.7, aes(color = subject_id)) +
+          geom_smooth() +
+  labs(
+    title = "Observations of study participants over 8 weeks",
+    x = "Week",
+    y = "Observations"
+  ) +
+  facet_grid(. ~ study_arm)
+
+spaghetti_plot
+```
+
+Interpretation: The Control arm is more constant for all the participants over the course of the 8 weeks. Whereas, there is an increase in the number of observations in the Experimental arm especially from week 2. Participant 4 had the most fluctuations in both the control and experimental groups, and participant 10 had the most erratic fluctuations in the experiment group. 
+
+## Problem 3
+
+
+
+
+
 
 
 
