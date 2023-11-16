@@ -167,11 +167,45 @@ Interpretation: The Control arm is more constant for all the participants over t
 
 ## Problem 3
 
+Set the seed and elements:
+```{r}
+set.seed(123)
+n = 30 
+sigma = 5 
+mu_values = 0:6 
+alpha = 0.05
+num_sims = 5000
+```
 
+One-sample t-test function
+```{r}
+t_test = function(tidy_df, true_mu) {
+  t_test_result = t.test(tidy_df, mu = 0)
+  tidy_result = broom::tidy(t_test_result)
+  return(tidy_result)
+}
+```
 
+Perform t-test for each of the 5000 data-sets:
+```{r}
+results = expand.grid(mu = mu_values, dataset = 1:num_sims) |>
+  group_by(mu) |>
+  rowwise() |>
+  mutate(sample_data = list(rnorm(n, mean = mu, sd = sigma)),
+         tidy_result = list(t_test(sample_data, true_mu = 0))) |>
+  ungroup() |>
+  tidyr::unnest(c(tidy_result, sample_data)) |>
+  mutate(reject_null = as.numeric(p.value < alpha))
+```
 
-
-
+Power Calculation
+```{r}
+power = results |>
+  group_by(mu) |>
+  summarise(power = mean(reject_null, na.rm = TRUE),
+            mu_hat = mean(estimate, na.rm = TRUE),
+            mu_hat_reject = mean(estimate * reject_null, na.rm = TRUE) / mean(reject_null, na.rm = TRUE))
+```
 
 
 
