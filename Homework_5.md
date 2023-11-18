@@ -3,107 +3,11 @@ Homework 5
 Pavithra Srinivasan
 November 16, 2023
 
+Assignment Due: November 16th
+
 ## Problem 1
 
-For this problem, we are interested in data gathered and made public by
-*The Washington Post* on homicides in 50 large U.S. cities. The code
-chunk below imports and cleans the data.
-
-``` r
-homicide_df = 
-  read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
-  mutate(
-    city_state = str_c(city, state, sep = ", "),
-    resolution = case_when(
-      disposition == "Closed without arrest" ~ "unsolved",
-      disposition == "Open/No arrest"        ~ "unsolved",
-      disposition == "Closed by arrest"      ~ "solved"
-    )
-  ) %>% 
-  filter(city_state != "Tulsa, AL") 
-```
-
-    ## Rows: 52179 Columns: 12
-    ## ── Column specification ────────────────────────────────────────────────────────
-    ## Delimiter: ","
-    ## chr (8): uid, victim_last, victim_first, victim_race, victim_sex, city, stat...
-    ## dbl (4): reported_date, victim_age, lat, lon
-    ## 
-    ## ℹ Use `spec()` to retrieve the full column specification for this data.
-    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-The resulting dataframe has 52178 entries, on variables that include the
-victim name, race, age, and sex; the date the homicide was reported; and
-the location of the homicide. In cleaning, I created a `city_state`
-variable that includes both city and state, and a `resolution` variable
-to indicate whether the case was closed by arrest. I also excluded one
-entry in Tulsa, AL, which is not a major US city and is most likely a
-data entry error.
-
-In the next code chunk, I group within cities and summarize to produce
-the total number of homicides and the number that are solved.
-
-``` r
-city_homicide_df = 
-  homicide_df %>% 
-  select(city_state, disposition, resolution) %>% 
-  group_by(city_state) %>% 
-  summarize(
-    hom_total = n(),
-    hom_unsolved = sum(resolution == "unsolved"))
-```
-
-Focusing only on Baltimore, MD, I can use the `prop.test` and
-`broom::tidy` functions to obtain an estimate and CI of the proportion
-of unsolved homicides in that city. The table below shows those values.
-
-``` r
-bmore_test = 
-  prop.test(
-    x = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_unsolved),
-    n = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_total)) 
-
-broom::tidy(bmore_test) %>% 
-  knitr::kable(digits = 3)
-```
-
-| estimate | statistic | p.value | parameter | conf.low | conf.high | method                                               | alternative |
-|---------:|----------:|--------:|----------:|---------:|----------:|:-----------------------------------------------------|:------------|
-|    0.646 |   239.011 |       0 |         1 |    0.628 |     0.663 | 1-sample proportions test with continuity correction | two.sided   |
-
-Building on this code, I can use functions in the `purrr` package to
-obtain estimates and CIs for the proportion of unsolved homicides in
-each city in my dataset. The code below implements this analysis.
-
-``` r
-test_results = 
-  city_homicide_df %>% 
-  mutate(
-    prop_tests = map2(hom_unsolved, hom_total, \(x, y) prop.test(x = x, n = y)),
-    tidy_tests = map(prop_tests, broom::tidy)) %>% 
-  select(-prop_tests) %>% 
-  unnest(tidy_tests) %>% 
-  select(city_state, estimate, conf.low, conf.high) %>% 
-  mutate(city_state = fct_reorder(city_state, estimate))
-```
-
-Finally, I make a plot showing the estimate (and CI) of the proportion
-of unsolved homicides in each city.
-
-``` r
-test_results %>% 
-  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
-  ggplot(aes(x = city_state, y = estimate)) + 
-  geom_point() + 
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-```
-
-<img src="Homework_5_files/figure-gfm/unnamed-chunk-5-1.png" width="90%" />
-
-This figure suggests a very wide range in the rate at which homicides
-are solved – Chicago is noticeably high and, given the narrowness of the
-CI, likely is the location of many homicides.
+Disucssed in class, and solution already provided.
 
 ## Problem 2
 
@@ -345,7 +249,7 @@ spaghetti_plot
 
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-<img src="Homework_5_files/figure-gfm/unnamed-chunk-7-1.png" width="90%" />
+<img src="Homework_5_files/figure-gfm/unnamed-chunk-2-1.png" width="90%" />
 
 Interpretation: The Control arm is more constant for all the
 participants over the course of the 8 weeks. Whereas, there is an
@@ -383,3 +287,9 @@ results =
 ```
 
 Repeat the above for μ={1,2,3,4,5,6}:
+
+``` r
+results_2 = expand_grid(mu = 1:6, iter = 1:5000) |> 
+  mutate(estimate_df = map(mu, sim_function)) |> 
+  unnest(estimate_df)
+```
